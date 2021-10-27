@@ -6,7 +6,7 @@ use windows::{
 };
 
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
-const HOT_DELAY: u32 = 0;
+const HOT_DELAY: u32 = 100;
 /// Base key for exiting
 const EXIT_HOTKEY: VIRTUAL_KEY = VK_C;
 /// Modifier key(s) for exiting
@@ -72,6 +72,9 @@ const HOT_CORNER_INPUT: [INPUT; 4] = [
     },
 ];
 
+// Global handle to the activation thread
+static mut HOT_CORNER_THREAD: HANDLE = HANDLE(0);
+
 fn main() -> Result<()> {
     unsafe {
         let mut msg: MSG = MSG::default();
@@ -110,6 +113,7 @@ fn main() -> Result<()> {
 /// Note: we've already checked that no modifier keys or mouse buttons are currently pressed in
 /// `mouse_hook_callback`.
 extern "system" fn hot_corner_fn(_lp_parameter: *mut c_void) -> u32 {
+    println!("In hot_corner_fn");
     // let mut keystate = [0u8; 256];
     let mut point: POINT = Default::default();
 
@@ -131,6 +135,7 @@ extern "system" fn hot_corner_fn(_lp_parameter: *mut c_void) -> u32 {
         {
             return 1;
         }
+        println!("sent input");
 
         0
     }
@@ -141,7 +146,6 @@ extern "system" fn hot_corner_fn(_lp_parameter: *mut c_void) -> u32 {
 extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     unsafe {
         let evt: *mut MSLLHOOKSTRUCT = std::mem::transmute(l_param);
-        let mut hot_corner_thread: HANDLE = HANDLE::default();
 
         // If the mouse hasn't moved, we're done
         if w_param.0 as u32 != WM_MOUSEMOVE {
@@ -151,23 +155,23 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         // Check if the cursor is hot or cold
         if !PtInRect(&HOT_CORNER as *const _, (*evt).pt).as_bool() {
             // The corner is cold, and was cold before
-            if hot_corner_thread.is_invalid() {
+            if HOT_CORNER_THREAD.is_invalid() {
                 return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
             }
 
             // The corner is cold, but was previously hot
-            TerminateThread(hot_corner_thread, 0);
+            TerminateThread(HOT_CORNER_THREAD, 0);
 
-            CloseHandle(hot_corner_thread);
+            CloseHandle(HOT_CORNER_THREAD);
 
             // Reset state
-            hot_corner_thread = HANDLE::default();
+            HOT_CORNER_THREAD = HANDLE::default();
 
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
         // The corner is hot, check if it was already hot
-        if !hot_corner_thread.is_invalid() {
+        if !HOT_CORNER_THREAD.is_invalid() {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
@@ -189,7 +193,7 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         }
 
         // The corner is hot, and was previously cold. Start a new thread to monitor
-        hot_corner_thread = CreateThread(
+        HOT_CORNER_THREAD = CreateThread(
             std::ptr::null(),
             0,
             Some(hot_corner_fn),
