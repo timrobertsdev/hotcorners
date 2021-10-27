@@ -1,4 +1,5 @@
 #![cfg(windows)]
+#![windows_subsystem = "windows"]
 
 windows::include_bindings!();
 
