@@ -1,10 +1,8 @@
 #![cfg(windows)]
 #![windows_subsystem = "windows"]
 
-windows::include_bindings!();
-
-use Windows::{
-    Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::UI::KeyboardAndMouseInput::*,
+use windows::{
+    runtime::*, Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::UI::KeyboardAndMouseInput::*,
     Win32::UI::WindowsAndMessaging::*,
 };
 
@@ -15,7 +13,6 @@ use std::sync::{
 };
 use std::thread;
 use std::time::Duration;
-use windows::{Error as WinError, Handle, Result as WinResult, HRESULT};
 
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
 const HOT_DELAY: Duration = Duration::from_millis(100);
@@ -105,13 +102,13 @@ lazy_static! {
     static ref HOT_CORNER_THREAD_FLAG: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
 }
 
-fn main() -> WinResult<()> {
+fn main() -> Result<()> {
     unsafe {
         let mut msg: MSG = MSG::default();
         let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0);
 
         if mouse_hook.is_invalid() {
-            return Err(WinError::fast_error(HRESULT(1)));
+            return Err(Error::fast_error(HRESULT(1)));
         }
 
         RegisterHotKey(
