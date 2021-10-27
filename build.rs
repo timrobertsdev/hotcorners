@@ -1,18 +1,7 @@
 fn main() {
     windows::build! {
-        Windows::Win32::Foundation::{
-            CloseHandle,
-            HANDLE,
-            RECT,
-        },
-        Windows::Win32::Graphics::Gdi::{
-            PtInRect,
-        },
-        Windows::Win32::System::Threading::{
-            CreateThread,
-            Sleep,
-            TerminateThread,
-        },
+        Windows::Win32::Foundation::RECT,
+        Windows::Win32::Graphics::Gdi::PtInRect,
         Windows::Win32::UI::KeyboardAndMouseInput::{
             GetKeyboardState,
             GetKeyState,
