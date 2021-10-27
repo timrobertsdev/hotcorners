@@ -10,7 +10,7 @@ Configuration is currently hard-coded. The following parameters can be modified 
 * `EXIT_HOT_KEY` - Base key for exiting the program, combined with `EXIT_HOT_KEY_MODIFIERS`, defaults to `C`
 * `EXIT_HOT_KEY_MODIFIERS` - Modifier key(s) for exiting the program, combined with `EXIT_HOT_KEY`, defaults to `Alt+Ctrl`
 
-Inspired by https://github.com/taviso/hotcorner
+Inspired by and adapted from https://github.com/taviso/hotcorner
 
 ## Build and Install (PowerShell)
 ```
