@@ -15,15 +15,7 @@ default-target = "x86_64-pc-windows-msvc"
 targets = ["x86_64-pc-windows-msvc"]
 
 [dependencies]
+windows = "0.21"
 
-[dependencies.windows]
-git = "https://github.com/microsoft/windows-rs"
-features = [
-    "Win32_Foundation",
-    "Win32_System_Threading",
-    "Win32_UI_WindowsAndMessaging",
-    "Win32_UI_KeyboardAndMouseInput",
-    "Win32_Graphics_Gdi",
-    "Win32_Security",
-    "Win32_System_SystemServices",
-]
+[build-dependencies]
+windows = "0.21"

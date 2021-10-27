@@ -1,12 +1,15 @@
-use std::ffi::c_void;
+windows::include_bindings!();
 
-use windows::{
-    runtime::*, Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::System::Threading::*,
+use Windows::{
+    Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::System::Threading::*,
     Win32::UI::KeyboardAndMouseInput::*, Win32::UI::WindowsAndMessaging::*,
 };
 
+use std::ffi::c_void;
+use windows::{Error, HRESULT, Handle, Result};
+
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
-const HOT_DELAY: u32 = 100;
+const HOT_DELAY: u32 = 25;
 /// Base key for exiting
 const EXIT_HOTKEY: VIRTUAL_KEY = VK_C;
 /// Modifier key(s) for exiting
@@ -81,7 +84,7 @@ fn main() -> Result<()> {
         let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0);
 
         if mouse_hook.is_invalid() {
-            return Err(windows::runtime::Error::fast_error(HRESULT(1)));
+            return Err(Error::fast_error(HRESULT(1)));
         }
 
         RegisterHotKey(
