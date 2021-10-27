@@ -1,3 +1,5 @@
+#![cfg(windows)]
+
 windows::include_bindings!();
 
 use Windows::{
@@ -116,7 +118,6 @@ fn main() -> Result<()> {
 /// Note: we've already checked that no modifier keys or mouse buttons are currently pressed in
 /// `mouse_hook_callback`.
 extern "system" fn hot_corner_fn(_lp_parameter: *mut c_void) -> u32 {
-    println!("In hot_corner_fn");
     // let mut keystate = [0u8; 256];
     let mut point: POINT = Default::default();
 
@@ -138,7 +139,6 @@ extern "system" fn hot_corner_fn(_lp_parameter: *mut c_void) -> u32 {
         {
             return 1;
         }
-        println!("sent input");
 
         0
     }
