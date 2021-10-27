@@ -1,5 +1,10 @@
 #![cfg(windows)]
 #![windows_subsystem = "windows"]
+#![warn(rust_2018_idioms)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+
+//! A simple hot corners implementation for Windows 10/11
 
 use windows::{
     runtime::*, Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::UI::KeyboardAndMouseInput::*,
