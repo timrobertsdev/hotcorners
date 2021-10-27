@@ -1,0 +1,29 @@
+[package]
+name = "hotcorners"
+version = "0.1.0"
+authors = ["Tim Roberts <tim@timroberts.dev>"]
+edition = "2021"
+license = "GPL-3.0-only"
+description = "A small hot corners implementation for Windows 10/11"
+repository = "https://github.com/timrobertsdev/hotcorners"
+keywords = ["windows", "hotcorners"]
+categories = ["command-line-utilities"]
+
+[package.metadata.docs.rs]
+all-features = true
+default-target = "x86_64-pc-windows-msvc"
+targets = ["x86_64-pc-windows-msvc"]
+
+[dependencies]
+
+[dependencies.windows]
+git = "https://github.com/microsoft/windows-rs"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_KeyboardAndMouseInput",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_System_SystemServices",
+]
