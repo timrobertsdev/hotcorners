@@ -10,7 +10,7 @@ checksum = "fb58b6451e8c2a812ad979ed1d83378caa5e927eef2622017a45f251457c2c9d"
 
 [[package]]
 name = "hotcorners"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "windows",
 ]
