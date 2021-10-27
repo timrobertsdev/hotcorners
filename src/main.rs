@@ -181,11 +181,6 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
 
         // Check if the cursor is hot or cold
         if !PtInRect(&HOT_CORNER as *const _, (*evt).pt).as_bool() {
-            // The corner is cold, and was cold before
-            if !HOT_CORNER_THREAD_FLAG.load(Ordering::Acquire) {
-                return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
-            }
-
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
