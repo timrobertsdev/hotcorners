@@ -137,7 +137,6 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// This thread runs when the cursor enters the hot corner, and waits to see if it stays there.
 /// Runs in a separate thread when the cursor enters the hot corner, and waits to see if it stays there.
 /// Will send `HOT_CORNER_INPUT` if the cursor stays within the rectangle defined by `HOT_CORNER` for
 /// `HOT_DELAY` milliseconds.
