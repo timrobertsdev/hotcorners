@@ -123,12 +123,12 @@ fn main() -> Result<()> {
             EXIT_HOTKEY.0.into(),
         );
 
-        while GetMessageW(&mut msg as *mut _, HWND(0), 0, 0).as_bool() {
+        while GetMessageW(&mut msg, HWND(0), 0, 0).as_bool() {
             if msg.message == WM_HOTKEY {
                 break;
             }
 
-            DispatchMessageW(&mut msg as *mut _);
+            DispatchMessageW(&mut msg);
         }
 
         UnhookWindowsHookEx(mouse_hook);
@@ -150,15 +150,15 @@ fn hot_corner_fn() {
 
     unsafe {
         // Grab cursor position
-        if !GetCursorPos(&mut point as *mut POINT).as_bool() {
+        if !GetCursorPos(&mut point).as_bool() {
             return;
         }
 
         // Check if cursor is still in the hot corner and then send the input sequence
-        if PtInRect(&HOT_CORNER as *const _, &point).as_bool()
+        if PtInRect(&HOT_CORNER, &point).as_bool()
             && SendInput(
                 HOT_CORNER_INPUT.len() as u32,
-                &HOT_CORNER_INPUT as *const _,
+                HOT_CORNER_INPUT.as_ptr(),
                 std::mem::size_of::<INPUT>() as i32,
             ) != HOT_CORNER_INPUT.len() as u32
         {
@@ -179,7 +179,7 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         }
 
         // Check if the cursor is hot or cold
-        if !PtInRect(&HOT_CORNER as *const _, (*evt).pt).as_bool() {
+        if !PtInRect(&HOT_CORNER, (*evt).pt).as_bool() {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
