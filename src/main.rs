@@ -6,10 +6,7 @@
 
 //! A simple hot corners implementation for Windows 10/11
 
-use windows::{
-    runtime::*, Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::UI::KeyboardAndMouseInput::*,
-    Win32::UI::WindowsAndMessaging::*,
-};
+use windows::{core::{Error, Handle, Result}, Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::UI::Input::KeyboardAndMouse::*, Win32::UI::WindowsAndMessaging::*, core::HRESULT};
 
 use lazy_static::lazy_static;
 use std::sync::{
