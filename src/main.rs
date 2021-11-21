@@ -6,15 +6,22 @@
 
 //! A simple hot corners implementation for Windows 10/11
 
-use windows::{core::{Error, Handle, Result}, Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::UI::Input::KeyboardAndMouse::*, Win32::UI::WindowsAndMessaging::*, core::HRESULT};
-
-use lazy_static::lazy_static;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use std::thread;
 use std::time::Duration;
+
+use lazy_static::lazy_static;
+use windows::{
+    core::HRESULT,
+    core::{Error, Handle, Result},
+    Win32::Foundation::*,
+    Win32::Graphics::Gdi::*,
+    Win32::UI::Input::KeyboardAndMouse::*,
+    Win32::UI::WindowsAndMessaging::*,
+};
 
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
 const HOT_DELAY: Duration = Duration::from_millis(100);
