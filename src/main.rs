@@ -1,26 +1,32 @@
+//! A simple hot corners implementation for Windows 10/11
 #![cfg(windows)]
 #![windows_subsystem = "windows"]
 #![warn(rust_2018_idioms)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 
-//! A simple hot corners implementation for Windows 10/11
+mod config;
 
+use std::{
+    fs,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread,
+    time::Duration,
+};
+
+use lazy_static::lazy_static;
 use windows::{
     runtime::*, Win32::Foundation::*, Win32::Graphics::Gdi::*, Win32::UI::KeyboardAndMouseInput::*,
     Win32::UI::WindowsAndMessaging::*,
 };
 
-use lazy_static::lazy_static;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
-use std::thread;
-use std::time::Duration;
+use crate::config::Config;
 
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
-const HOT_DELAY: Duration = Duration::from_millis(100);
+static mut HOT_DELAY: Duration = Duration::from_millis(100);
 /// Base key for exiting
 const EXIT_HOTKEY: VIRTUAL_KEY = VK_C;
 /// Modifier key(s) for exiting
@@ -108,6 +114,12 @@ lazy_static! {
 }
 
 fn main() -> Result<()> {
+    let config: Config = toml::from_str(&fs::read_to_string("config.toml").unwrap()).unwrap();
+
+    if let Some(delay) = &config.delay {
+        unsafe { HOT_DELAY = Duration::from_millis(*delay) }
+    };
+
     unsafe {
         let mut msg: MSG = MSG::default();
         let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0);
@@ -145,8 +157,9 @@ fn main() -> Result<()> {
 /// `mouse_hook_callback`.
 fn hot_corner_fn() {
     let mut point: POINT = Default::default();
+    let sleep_delay = unsafe { HOT_DELAY.clone() };
 
-    thread::sleep(HOT_DELAY);
+    thread::sleep(sleep_delay);
 
     unsafe {
         // Grab cursor position

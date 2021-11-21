@@ -19,6 +19,11 @@ lto = true
 
 [dependencies]
 lazy_static = "1.4.0"
+toml = "0.5"
+
+[dependencies.serde]
+version = "1.0"
+features = [ "derive", ]
 
 [dependencies.windows]
 version = "0.22"
