@@ -20,7 +20,7 @@ use std::{
 use lazy_static::lazy_static;
 use windows::{
     core::HRESULT,
-    core::{Error, Handle, Result},
+    core::{Error, Result},
     Win32::Foundation::*,
     Win32::Graphics::Gdi::*,
     Win32::UI::Input::KeyboardAndMouse::*,
@@ -144,7 +144,7 @@ fn main() -> Result<()> {
                 break;
             }
 
-            DispatchMessageW(&mut msg);
+            DispatchMessageW(&msg);
         }
 
         UnhookWindowsHookEx(mouse_hook);
@@ -161,7 +161,7 @@ fn main() -> Result<()> {
 /// `mouse_hook_callback`.
 fn hot_corner_fn() {
     let mut point: POINT = Default::default();
-    let sleep_delay = unsafe { HOT_DELAY.clone() };
+    let sleep_delay = unsafe { HOT_DELAY };
 
     thread::sleep(sleep_delay);
 
