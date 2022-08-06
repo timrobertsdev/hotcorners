@@ -19,8 +19,7 @@ use std::{
 
 use lazy_static::lazy_static;
 use windows::{
-    core::HRESULT,
-    core::{Error, Result},
+    core::Result,
     Win32::Foundation::*,
     Win32::Graphics::Gdi::*,
     Win32::UI::Input::KeyboardAndMouse::*,
@@ -126,11 +125,7 @@ fn main() -> Result<()> {
 
     unsafe {
         let mut msg: MSG = MSG::default();
-        let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0);
-
-        if mouse_hook.is_invalid() {
-            return Err(Error::fast_error(HRESULT(1)));
-        }
+        let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0)?;
 
         RegisterHotKey(
             HWND::default(),
@@ -172,11 +167,10 @@ fn hot_corner_fn() {
         }
 
         // Check if cursor is still in the hot corner and then send the input sequence
-        if PtInRect(&HOT_CORNER, &point).as_bool()
+        if PtInRect(&HOT_CORNER, point).as_bool()
             && SendInput(
-                HOT_CORNER_INPUT.len() as u32,
-                HOT_CORNER_INPUT.as_ptr(),
-                std::mem::size_of::<INPUT>() as i32,
+                &HOT_CORNER_INPUT,
+                std::mem::size_of::<INPUT>() as i32
             ) != HOT_CORNER_INPUT.len() as u32
         {
             println!("Failed to send input");
@@ -212,7 +206,7 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
 
         // Check if a modifier key is pressed
         let mut keystate = [0u8; 256];
-        if GetKeyboardState(keystate.as_mut_ptr()).as_bool()
+        if GetKeyboardState(&mut keystate).as_bool()
             && (keydown(keystate[VK_SHIFT.0 as usize])
                 || keydown(keystate[VK_CONTROL.0 as usize])
                 || keydown(keystate[VK_MENU.0 as usize])
