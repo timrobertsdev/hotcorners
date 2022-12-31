@@ -4,6 +4,7 @@
 #![warn(rust_2018_idioms)]
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
+#![warn(clippy::all)]
 
 mod config;
 
@@ -19,11 +20,8 @@ use std::{
 
 use lazy_static::lazy_static;
 use windows::{
-    core::Result,
-    Win32::Foundation::*,
-    Win32::Graphics::Gdi::*,
-    Win32::UI::Input::KeyboardAndMouse::*,
-    Win32::UI::WindowsAndMessaging::*,
+    core::Result, Win32::Foundation::*, Win32::Graphics::Gdi::*,
+    Win32::UI::Input::KeyboardAndMouse::*, Win32::UI::WindowsAndMessaging::*,
 };
 
 use crate::config::Config;
@@ -125,7 +123,8 @@ fn main() -> Result<()> {
 
     unsafe {
         let mut msg: MSG = MSG::default();
-        let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0)?;
+        let mouse_hook =
+            SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0)?;
 
         RegisterHotKey(
             HWND::default(),
@@ -168,10 +167,8 @@ fn hot_corner_fn() {
 
         // Check if cursor is still in the hot corner and then send the input sequence
         if PtInRect(&HOT_CORNER, point).as_bool()
-            && SendInput(
-                &HOT_CORNER_INPUT,
-                std::mem::size_of::<INPUT>() as i32
-            ) != HOT_CORNER_INPUT.len() as u32
+            && SendInput(&HOT_CORNER_INPUT, std::mem::size_of::<INPUT>() as i32)
+                != HOT_CORNER_INPUT.len() as u32
         {
             println!("Failed to send input");
         }
