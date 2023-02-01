@@ -14,11 +14,11 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    thread,
+    thread::{self, JoinHandle},
     time::Duration,
 };
 
-use lazy_static::lazy_static;
+use once_cell::sync::OnceCell;
 use windows::{
     core::Result, Win32::Foundation::*, Win32::Graphics::Gdi::*,
     Win32::UI::Input::KeyboardAndMouse::*, Win32::UI::WindowsAndMessaging::*,
@@ -94,27 +94,25 @@ const HOT_CORNER_INPUT: [INPUT; 4] = [
 ];
 
 // Global handle to the activation thread
-lazy_static! {
-    static ref HOT_CORNER_THREAD: thread::JoinHandle<()> = {
-        thread::spawn(|| {
-            loop {
-                while !HOT_CORNER_THREAD_FLAG.load(Ordering::Acquire) {
-                    thread::park();
-                }
-                hot_corner_fn();
-                // FIXME: Lots of double activation without this, but there's probably a better way
-                thread::sleep(Duration::from_millis(200));
-                HOT_CORNER_THREAD_FLAG.store(false, Ordering::Release);
-            }
-        })
-    };
-}
+static HOT_CORNER_THREAD: OnceCell<JoinHandle<()>> = OnceCell::new();
 
-lazy_static! {
-    static ref HOT_CORNER_THREAD_FLAG: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
-}
+static HOT_CORNER_THREAD_FLAG: OnceCell<Arc<AtomicBool>> = OnceCell::new();
 
 fn main() -> Result<()> {
+    HOT_CORNER_THREAD_FLAG.set(Arc::new(AtomicBool::new(false))).unwrap();
+    HOT_CORNER_THREAD.set(thread::spawn(|| {
+        let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
+        loop {
+            while !flag.load(Ordering::Acquire) {
+                thread::park();
+            }
+            hot_corner_fn();
+            // FIXME: Lots of double activation without this, but there's probably a better way
+            thread::sleep(Duration::from_millis(200));
+            flag.store(false, Ordering::Release);
+        }
+    })).unwrap();
+    
     let config: Config = toml::from_str(&fs::read_to_string("config.toml").unwrap()).unwrap();
 
     if let Some(delay) = &config.delay {
@@ -180,6 +178,7 @@ fn hot_corner_fn() {
 extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     unsafe {
         let evt: *mut MSLLHOOKSTRUCT = std::mem::transmute(l_param);
+        let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
 
         // If the mouse hasn't moved, we're done
         if w_param.0 as u32 != WM_MOUSEMOVE {
@@ -192,7 +191,7 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         }
 
         // The corner is hot, check if it was already hot
-        if HOT_CORNER_THREAD_FLAG.load(Ordering::Relaxed) {
+        if flag.load(Ordering::Relaxed) {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
@@ -214,8 +213,8 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         }
 
         // The corner is hot, and was previously cold. Notify the worker thread to resume
-        HOT_CORNER_THREAD_FLAG.store(true, Ordering::Relaxed);
-        HOT_CORNER_THREAD.thread().unpark();
+        flag.store(true, Ordering::Relaxed);
+        HOT_CORNER_THREAD.get().unwrap().thread().unpark();
 
         CallNextHookEx(HHOOK::default(), n_code, w_param, l_param)
     }
