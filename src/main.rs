@@ -18,7 +18,6 @@ use std::{
     thread::{self, JoinHandle},
     time::Duration,
 };
-
 use once_cell::sync::OnceCell;
 use windows::{
     core::Result,
@@ -47,8 +46,8 @@ const EXIT_HOTKEY_MODIFIERS: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(MOD_CONTROL.0
 
 /// Rectangle to define our hot corner
 const HOT_CORNER: RECT = RECT {
-    left: -20,
-    top: -20,
+    left: 0,
+    top: 0,
     right: 20,
     bottom: 20,
 };
@@ -122,8 +121,6 @@ fn main() -> Result<()> {
                     thread::park();
                 }
                 hot_corner_fn();
-                // FIXME: Lots of double activation without this, but there's probably a better way
-                thread::sleep(Duration::from_millis(200));
                 flag.store(false, Ordering::Release);
             }
         }))
@@ -182,14 +179,16 @@ fn hot_corner_fn() {
         // Check if cursor is still in the hot corner and then send the input sequence
         if PtInRect(&HOT_CORNER, point).as_bool()
             // the size of `INPUT` will never exceed an i32
-            && SendInput(&HOT_CORNER_INPUT, i32::try_from(std::mem::size_of::<INPUT>()).unwrap_unchecked())
+            && SendInput(&HOT_CORNER_INPUT, i32::try_from(std::mem::size_of::<INPUT>()).unwrap())
                 // it would be absurd if the length of HOT_CORNER_INPUT exceeded a u32
-                != u32::try_from(HOT_CORNER_INPUT.len()).unwrap_unchecked()
+                != u32::try_from(HOT_CORNER_INPUT.len()).unwrap()
         {
             println!("Failed to send input");
         }
     }
 }
+
+static mut STILL_HOT: bool = false;
 
 /// Callback that is registered with Windows in order to start the hot corner activation
 #[allow(unused_assignments)] // Clippy doesn't like that we sometimes don't read `hot_corner_thread`'s value
@@ -206,11 +205,12 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
 
         // Check if the cursor is hot or cold
         if !PtInRect(&HOT_CORNER, (*evt).pt).as_bool() {
+            STILL_HOT = false;
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
         // The corner is hot, check if it was already hot
-        if flag.load(Ordering::Relaxed) {
+        if STILL_HOT {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
@@ -236,6 +236,7 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         flag.store(true, Ordering::Relaxed);
         HOT_CORNER_THREAD.get().unwrap().thread().unpark();
 
+        STILL_HOT = true;
         CallNextHookEx(HHOOK::default(), n_code, w_param, l_param)
     }
 }
