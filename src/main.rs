@@ -192,7 +192,7 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         }
 
         // The corner is hot, check if it was already hot
-        if HOT_CORNER_THREAD_FLAG.load(Ordering::Acquire) {
+        if HOT_CORNER_THREAD_FLAG.load(Ordering::Relaxed) {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
@@ -214,7 +214,7 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         }
 
         // The corner is hot, and was previously cold. Notify the worker thread to resume
-        HOT_CORNER_THREAD_FLAG.store(true, Ordering::Release);
+        HOT_CORNER_THREAD_FLAG.store(true, Ordering::Relaxed);
         HOT_CORNER_THREAD.thread().unpark();
 
         CallNextHookEx(HHOOK::default(), n_code, w_param, l_param)
