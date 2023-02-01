@@ -5,6 +5,7 @@
 #![warn(missing_debug_implementations)]
 #![warn(missing_docs)]
 #![warn(clippy::all)]
+#![warn(clippy::pedantic)]
 
 mod config;
 
@@ -20,8 +21,19 @@ use std::{
 
 use once_cell::sync::OnceCell;
 use windows::{
-    core::Result, Win32::Foundation::*, Win32::Graphics::Gdi::*,
-    Win32::UI::Input::KeyboardAndMouse::*, Win32::UI::WindowsAndMessaging::*,
+    core::Result,
+    Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM},
+    Win32::Graphics::Gdi::PtInRect,
+    Win32::UI::Input::KeyboardAndMouse::{
+        GetKeyState, GetKeyboardState, RegisterHotKey, SendInput, HOT_KEY_MODIFIERS, INPUT,
+        INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, MOD_ALT,
+        MOD_CONTROL, VIRTUAL_KEY, VK_C, VK_CONTROL, VK_LBUTTON, VK_LWIN, VK_MENU, VK_RBUTTON,
+        VK_RWIN, VK_SHIFT, VK_TAB,
+    },
+    Win32::UI::WindowsAndMessaging::{
+        CallNextHookEx, DispatchMessageW, GetCursorPos, GetMessageW, SetWindowsHookExW,
+        UnhookWindowsHookEx, HHOOK, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_HOTKEY, WM_MOUSEMOVE,
+    },
 };
 
 use crate::config::Config;
@@ -99,20 +111,24 @@ static HOT_CORNER_THREAD: OnceCell<JoinHandle<()>> = OnceCell::new();
 static HOT_CORNER_THREAD_FLAG: OnceCell<Arc<AtomicBool>> = OnceCell::new();
 
 fn main() -> Result<()> {
-    HOT_CORNER_THREAD_FLAG.set(Arc::new(AtomicBool::new(false))).unwrap();
-    HOT_CORNER_THREAD.set(thread::spawn(|| {
-        let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
-        loop {
-            while !flag.load(Ordering::Acquire) {
-                thread::park();
+    HOT_CORNER_THREAD_FLAG
+        .set(Arc::new(AtomicBool::new(false)))
+        .unwrap();
+    HOT_CORNER_THREAD
+        .set(thread::spawn(|| {
+            let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
+            loop {
+                while !flag.load(Ordering::Acquire) {
+                    thread::park();
+                }
+                hot_corner_fn();
+                // FIXME: Lots of double activation without this, but there's probably a better way
+                thread::sleep(Duration::from_millis(200));
+                flag.store(false, Ordering::Release);
             }
-            hot_corner_fn();
-            // FIXME: Lots of double activation without this, but there's probably a better way
-            thread::sleep(Duration::from_millis(200));
-            flag.store(false, Ordering::Release);
-        }
-    })).unwrap();
-    
+        }))
+        .unwrap();
+
     let config: Config = toml::from_str(&fs::read_to_string("config.toml").unwrap()).unwrap();
 
     if let Some(delay) = &config.delay {
@@ -152,7 +168,7 @@ fn main() -> Result<()> {
 /// Note: we've already checked that no modifier keys or mouse buttons are currently pressed in
 /// `mouse_hook_callback`.
 fn hot_corner_fn() {
-    let mut point: POINT = Default::default();
+    let mut point: POINT = POINT::default();
     let sleep_delay = unsafe { HOT_DELAY };
 
     thread::sleep(sleep_delay);
@@ -165,8 +181,10 @@ fn hot_corner_fn() {
 
         // Check if cursor is still in the hot corner and then send the input sequence
         if PtInRect(&HOT_CORNER, point).as_bool()
-            && SendInput(&HOT_CORNER_INPUT, std::mem::size_of::<INPUT>() as i32)
-                != HOT_CORNER_INPUT.len() as u32
+            // the size of `INPUT` will never exceed an i32
+            && SendInput(&HOT_CORNER_INPUT, i32::try_from(std::mem::size_of::<INPUT>()).unwrap_unchecked())
+                // it would be absurd if the length of HOT_CORNER_INPUT exceeded a u32
+                != u32::try_from(HOT_CORNER_INPUT.len()).unwrap_unchecked()
         {
             println!("Failed to send input");
         }
@@ -181,7 +199,8 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
 
         // If the mouse hasn't moved, we're done
-        if w_param.0 as u32 != WM_MOUSEMOVE {
+        let wm_evt = u32::try_from(w_param.0).expect("w_param.0 fits in a u32");
+        if wm_evt != WM_MOUSEMOVE {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
@@ -196,7 +215,8 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         }
 
         // Check if a mouse button is pressed
-        if (GetKeyState(VK_LBUTTON.0 as i32) < 0) || (GetKeyState(VK_RBUTTON.0 as i32) < 0) {
+        if (GetKeyState(i32::from(VK_LBUTTON.0)) < 0) || (GetKeyState(i32::from(VK_RBUTTON.0)) < 0)
+        {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
@@ -222,7 +242,6 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
 
 /// Convenience function for checking if a key is currently pressed down
 #[doc(hidden)]
-#[inline(always)]
 fn keydown(key: u8) -> bool {
     (key & 0x80) != 0
 }
