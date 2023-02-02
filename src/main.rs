@@ -9,6 +9,7 @@
 
 mod config;
 
+use crate::config::Config;
 use std::{
     fs,
     sync::{
@@ -34,8 +35,6 @@ use windows::{
         UnhookWindowsHookEx, HHOOK, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_HOTKEY, WM_MOUSEMOVE,
     },
 };
-
-use crate::config::Config;
 
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
 static mut HOT_DELAY: Duration = Duration::from_millis(100);
@@ -110,9 +109,11 @@ static HOT_CORNER_THREAD: OnceCell<JoinHandle<()>> = OnceCell::new();
 static HOT_CORNER_THREAD_FLAG: OnceCell<Arc<AtomicBool>> = OnceCell::new();
 
 fn main() -> Result<()> {
+    // init statics
     HOT_CORNER_THREAD_FLAG
         .set(Arc::new(AtomicBool::new(false)))
         .unwrap();
+
     HOT_CORNER_THREAD
         .set(thread::spawn(|| {
             let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
