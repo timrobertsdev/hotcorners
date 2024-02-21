@@ -28,7 +28,6 @@ lto = true
 
 [dependencies]
 toml = "0.8"
-once_cell = "1.17.0"
 
 [dependencies.serde]
 version = "1.0"

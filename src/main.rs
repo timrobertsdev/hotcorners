@@ -5,16 +5,17 @@
 mod config;
 
 use crate::config::Config;
-use once_cell::sync::OnceCell;
+
 use std::{
     fs,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, OnceLock,
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
+
 use windows::{
     core::Result,
     Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM},
@@ -99,9 +100,9 @@ const HOT_CORNER_INPUT: [INPUT; 4] = [
 ];
 
 // Global handle to the activation thread
-static HOT_CORNER_THREAD: OnceCell<JoinHandle<()>> = OnceCell::new();
+static HOT_CORNER_THREAD: OnceLock<JoinHandle<()>> = OnceLock::new();
 
-static HOT_CORNER_THREAD_FLAG: OnceCell<Arc<AtomicBool>> = OnceCell::new();
+static HOT_CORNER_THREAD_FLAG: OnceLock<Arc<AtomicBool>> = OnceLock::new();
 
 fn main() -> Result<()> {
     // init statics
