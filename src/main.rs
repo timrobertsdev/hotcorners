@@ -1,15 +1,11 @@
 //! A simple hot corners implementation for Windows 10/11
 #![cfg(windows)]
 #![windows_subsystem = "windows"]
-#![warn(rust_2018_idioms)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(clippy::all)]
-#![warn(clippy::pedantic)]
 
 mod config;
 
 use crate::config::Config;
+use once_cell::sync::OnceCell;
 use std::{
     fs,
     sync::{
@@ -19,7 +15,6 @@ use std::{
     thread::{self, JoinHandle},
     time::Duration,
 };
-use once_cell::sync::OnceCell;
 use windows::{
     core::Result,
     Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM},
@@ -143,7 +138,7 @@ fn main() -> Result<()> {
             1,
             EXIT_HOTKEY_MODIFIERS,
             EXIT_HOTKEY.0.into(),
-        );
+        )?;
 
         while GetMessageW(&mut msg, HWND(0), 0, 0).as_bool() {
             if msg.message == WM_HOTKEY {
@@ -153,7 +148,7 @@ fn main() -> Result<()> {
             DispatchMessageW(&msg);
         }
 
-        UnhookWindowsHookEx(mouse_hook);
+        UnhookWindowsHookEx(mouse_hook)?;
     }
 
     Ok(())
@@ -173,18 +168,15 @@ fn hot_corner_fn() {
 
     unsafe {
         // Grab cursor position
-        if !GetCursorPos(&mut point).as_bool() {
-            return;
-        }
-
-        // Check if cursor is still in the hot corner and then send the input sequence
-        if PtInRect(&HOT_CORNER, point).as_bool()
-            // the size of `INPUT` will never exceed an i32
-            && SendInput(&HOT_CORNER_INPUT, i32::try_from(std::mem::size_of::<INPUT>()).unwrap())
-                // it would be absurd if the length of HOT_CORNER_INPUT exceeded a u32
-                != u32::try_from(HOT_CORNER_INPUT.len()).unwrap()
-        {
-            println!("Failed to send input");
+        if let Ok(_) = GetCursorPos(&mut point) {
+            if PtInRect(&HOT_CORNER, point).as_bool()
+                // `size_of::<INPUT>()` will never > i32::MAX
+                && SendInput(&HOT_CORNER_INPUT, std::mem::size_of::<INPUT>() as i32)
+                    // it would be absurd if the size of `HOT_CORNER_INPUT`` exceeded `u32::MAX`
+                    != HOT_CORNER_INPUT.len() as u32
+            {
+                println!("Failed to send input");
+            }
         }
     }
 }
@@ -223,14 +215,15 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
 
         // Check if a modifier key is pressed
         let mut keystate = [0u8; 256];
-        if GetKeyboardState(&mut keystate).as_bool()
-            && (keydown(keystate[VK_SHIFT.0 as usize])
+        if let Ok(_) = GetKeyboardState(&mut keystate) {
+            if keydown(keystate[VK_SHIFT.0 as usize])
                 || keydown(keystate[VK_CONTROL.0 as usize])
                 || keydown(keystate[VK_MENU.0 as usize])
                 || keydown(keystate[VK_LWIN.0 as usize])
-                || keydown(keystate[VK_RWIN.0 as usize]))
-        {
-            return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
+                || keydown(keystate[VK_RWIN.0 as usize])
+            {
+                return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
+            }
         }
 
         // The corner is hot, and was previously cold. Notify the worker thread to resume
