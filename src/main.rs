@@ -18,7 +18,7 @@ use std::{
 
 use windows::{
     core::Result,
-    Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, RECT, WPARAM},
+    Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Win32::Graphics::Gdi::PtInRect,
     Win32::UI::Input::KeyboardAndMouse::{
         GetKeyState, GetKeyboardState, RegisterHotKey, SendInput, HOT_KEY_MODIFIERS, INPUT,
@@ -27,7 +27,7 @@ use windows::{
         VK_RWIN, VK_SHIFT, VK_TAB,
     },
     Win32::UI::WindowsAndMessaging::{
-        CallNextHookEx, DispatchMessageW, GetCursorPos, GetMessageW, SetWindowsHookExW,
+        CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW,
         UnhookWindowsHookEx, HHOOK, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_HOTKEY, WM_MOUSEMOVE,
     },
 };
@@ -41,8 +41,9 @@ const EXIT_HOTKEY_MODIFIERS: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(MOD_CONTROL.0
 
 /// Rectangle to define our hot corner
 const HOT_CORNER: RECT = RECT {
-    left: 0,
-    top: 0,
+    // fixes the activation issue when the mouse tries to go through the top left corner
+    left: -20,
+    top: -20,
     right: 20,
     bottom: 20,
 };
@@ -162,25 +163,21 @@ fn main() -> Result<()> {
 /// Note: we've already checked that no modifier keys or mouse buttons are currently pressed in
 /// `mouse_hook_callback`.
 fn hot_corner_fn() {
-    let mut point: POINT = POINT::default();
     let sleep_delay = unsafe { HOT_DELAY };
 
     thread::sleep(sleep_delay);
 
     unsafe {
-        // Grab cursor position
-        if let Ok(_) = GetCursorPos(&mut point) {
-            if PtInRect(&HOT_CORNER, point).as_bool()
-                // `size_of::<INPUT>()` will never > i32::MAX
-                && SendInput(&HOT_CORNER_INPUT, std::mem::size_of::<INPUT>() as i32)
-                    // it would be absurd if the size of `HOT_CORNER_INPUT`` exceeded `u32::MAX`
-                    != HOT_CORNER_INPUT.len() as u32
-            {
-                println!("Failed to send input");
-            }
+        // `size_of::<INPUT>()` will never > i32::MAX
+        if SendInput(&HOT_CORNER_INPUT, std::mem::size_of::<INPUT>() as i32)
+                // it would be absurd if the size of `HOT_CORNER_INPUT`` exceeded `u32::MAX`
+                != HOT_CORNER_INPUT.len() as u32
+        {
+            println!("Failed to send input");
         }
     }
 }
+
 
 static mut STILL_HOT: bool = false;
 
