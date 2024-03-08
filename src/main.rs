@@ -22,8 +22,8 @@ use windows::{
         VK_RWIN, VK_SHIFT, VK_TAB,
     },
     Win32::UI::WindowsAndMessaging::{
-        CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW,
-        UnhookWindowsHookEx, HHOOK, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_HOTKEY, WM_MOUSEMOVE,
+        CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx,
+        HHOOK, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_HOTKEY, WM_MOUSEMOVE,
     },
 };
 
@@ -156,6 +156,7 @@ fn hot_corner_fn() {
 
     unsafe {
         // `size_of::<INPUT>()` will never > i32::MAX
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         if SendInput(&HOT_CORNER_INPUT, std::mem::size_of::<INPUT>() as i32)
                 // it would be absurd if the size of `HOT_CORNER_INPUT`` exceeded `u32::MAX`
                 != HOT_CORNER_INPUT.len() as u32
@@ -164,7 +165,6 @@ fn hot_corner_fn() {
         }
     }
 }
-
 
 static mut STILL_HOT: bool = false;
 
@@ -200,15 +200,14 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
 
         // Check if a modifier key is pressed
         let mut keystate = [0u8; 256];
-        if let Ok(_) = GetKeyboardState(&mut keystate) {
-            if keydown(keystate[VK_SHIFT.0 as usize])
+        if GetKeyboardState(&mut keystate).is_ok()
+            && (keydown(keystate[VK_SHIFT.0 as usize])
                 || keydown(keystate[VK_CONTROL.0 as usize])
                 || keydown(keystate[VK_MENU.0 as usize])
                 || keydown(keystate[VK_LWIN.0 as usize])
-                || keydown(keystate[VK_RWIN.0 as usize])
-            {
-                return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
-            }
+                || keydown(keystate[VK_RWIN.0 as usize]))
+        {
+            return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
         // The corner is hot, and was previously cold. Notify the worker thread to resume
