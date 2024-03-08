@@ -27,7 +27,6 @@ codegen-units = 1
 lto = true
 
 [dependencies]
-toml = "0.8"
 
 [dependencies.serde]
 version = "1.0"

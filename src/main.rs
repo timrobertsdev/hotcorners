@@ -2,12 +2,7 @@
 #![cfg(windows)]
 #![windows_subsystem = "windows"]
 
-mod config;
-
-use crate::config::Config;
-
 use std::{
-    fs,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, OnceLock,
@@ -123,12 +118,6 @@ fn main() -> Result<()> {
             }
         }))
         .unwrap();
-
-    let config: Config = toml::from_str(&fs::read_to_string("config.toml").unwrap()).unwrap();
-
-    if let Some(delay) = &config.delay {
-        unsafe { HOT_DELAY = Duration::from_millis(*delay) }
-    };
 
     unsafe {
         let mut msg: MSG = MSG::default();
