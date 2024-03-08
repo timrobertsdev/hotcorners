@@ -37,8 +37,8 @@ const EXIT_HOTKEY_MODIFIERS: HOT_KEY_MODIFIERS = HOT_KEY_MODIFIERS(MOD_CONTROL.0
 /// Rectangle to define our hot corner
 const HOT_CORNER: RECT = RECT {
     // fixes the activation issue when the mouse tries to go through the top left corner
-    left: -20,
-    top: -20,
+    left: -200,
+    top: -200,
     right: 20,
     bottom: 20,
 };
