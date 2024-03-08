@@ -28,7 +28,7 @@ use windows::{
 };
 
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
-static mut HOT_DELAY: Duration = Duration::from_millis(100);
+const HOT_DELAY: Duration = Duration::from_millis(100);
 /// Base key for exiting
 const EXIT_HOTKEY: VIRTUAL_KEY = VK_C;
 /// Modifier key(s) for exiting
@@ -152,9 +152,7 @@ fn main() -> Result<()> {
 /// Note: we've already checked that no modifier keys or mouse buttons are currently pressed in
 /// `mouse_hook_callback`.
 fn hot_corner_fn() {
-    let sleep_delay = unsafe { HOT_DELAY };
-
-    thread::sleep(sleep_delay);
+    thread::sleep(HOT_DELAY);
 
     unsafe {
         // `size_of::<INPUT>()` will never > i32::MAX
