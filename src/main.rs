@@ -122,7 +122,7 @@ fn main() -> Result<()> {
     unsafe {
         let mut msg: MSG = MSG::default();
         let mouse_hook =
-            SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE(0), 0)?;
+            SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_callback), HINSTANCE::default(), 0)?;
 
         RegisterHotKey(
             HWND::default(),
@@ -131,7 +131,7 @@ fn main() -> Result<()> {
             EXIT_HOTKEY.0.into(),
         )?;
 
-        while GetMessageW(&mut msg, HWND(0), 0, 0).as_bool() {
+        while GetMessageW(&mut msg, HWND::default(), 0, 0).as_bool() {
             if msg.message == WM_HOTKEY {
                 break;
             }
