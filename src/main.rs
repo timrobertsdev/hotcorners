@@ -13,18 +13,15 @@ use std::{
 
 use windows::{
     core::Result,
-    Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
-    Win32::Graphics::Gdi::PtInRect,
-    Win32::UI::Input::KeyboardAndMouse::{
+    Win32::{Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM}, Graphics::Gdi::PtInRect, UI::{Input::KeyboardAndMouse::{
         GetKeyState, GetKeyboardState, RegisterHotKey, SendInput, HOT_KEY_MODIFIERS, INPUT,
         INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, MOD_ALT,
         MOD_CONTROL, VIRTUAL_KEY, VK_C, VK_CONTROL, VK_LBUTTON, VK_LWIN, VK_MENU, VK_RBUTTON,
         VK_RWIN, VK_SHIFT, VK_TAB,
-    },
-    Win32::UI::WindowsAndMessaging::{
+    }, Shell::SHQueryUserNotificationState, WindowsAndMessaging::{
         CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx,
         HHOOK, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_HOTKEY, WM_MOUSEMOVE,
-    },
+    }}},
 };
 
 /// How long the cursor must stay within the hot corner to activate, in milliseconds
@@ -178,6 +175,12 @@ extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LP
         // If the mouse hasn't moved, we're done
         let wm_evt = u32::try_from(w_param.0).expect("w_param.0 fits in a u32");
         if wm_evt != WM_MOUSEMOVE {
+            return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
+        }
+
+        // query the notification state. If it comes back as `BUSY`, we can usually assume there's a fullscreen app
+        let notify_state = SHQueryUserNotificationState().unwrap();
+        if notify_state.0 == 3 || notify_state.0 == 2 {
             return CallNextHookEx(HHOOK::default(), n_code, w_param, l_param);
         }
 
