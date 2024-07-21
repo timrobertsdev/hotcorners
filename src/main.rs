@@ -172,7 +172,7 @@ static mut STILL_HOT: bool = false;
 #[allow(unused_assignments)] // Clippy doesn't like that we sometimes don't read `hot_corner_thread`'s value
 extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     unsafe {
-        let evt: *mut MSLLHOOKSTRUCT = std::mem::transmute(l_param);
+        let evt = l_param.0 as *mut MSLLHOOKSTRUCT;
         let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
 
         // If the mouse hasn't moved, we're done
