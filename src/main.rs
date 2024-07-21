@@ -7,8 +7,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         OnceLock,
     },
-    thread::{self, JoinHandle},
-    time::Duration,
+    thread::{self, JoinHandle}
 };
 
 use windows::{
@@ -24,8 +23,6 @@ use windows::{
     }}},
 };
 
-/// How long the cursor must stay within the hot corner to activate, in milliseconds
-const HOT_DELAY: Duration = Duration::from_millis(100);
 /// Base key for exiting
 const EXIT_HOTKEY: VIRTUAL_KEY = VK_C;
 /// Modifier key(s) for exiting
@@ -149,8 +146,6 @@ fn main() -> Result<()> {
 /// Note: we've already checked that no modifier keys or mouse buttons are currently pressed in
 /// `mouse_hook_callback`.
 fn hot_corner_fn() {
-    thread::sleep(HOT_DELAY);
-
     unsafe {
         // `size_of::<INPUT>()` will never > i32::MAX
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
