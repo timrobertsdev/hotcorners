@@ -5,7 +5,7 @@
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, OnceLock,
+        OnceLock,
     },
     thread::{self, JoinHandle},
     time::Duration,
@@ -98,17 +98,17 @@ const HOT_CORNER_INPUT: [INPUT; 4] = [
 // Global handle to the activation thread
 static HOT_CORNER_THREAD: OnceLock<JoinHandle<()>> = OnceLock::new();
 
-static HOT_CORNER_THREAD_FLAG: OnceLock<Arc<AtomicBool>> = OnceLock::new();
+static HOT_CORNER_THREAD_FLAG: OnceLock<AtomicBool> = OnceLock::new();
 
 fn main() -> Result<()> {
     // init statics
     HOT_CORNER_THREAD_FLAG
-        .set(Arc::new(AtomicBool::new(false)))
+        .set(AtomicBool::new(false))
         .unwrap();
 
     HOT_CORNER_THREAD
         .set(thread::spawn(|| {
-            let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
+            let flag = HOT_CORNER_THREAD_FLAG.get().unwrap();
             loop {
                 while !flag.load(Ordering::Acquire) {
                     thread::park();
@@ -173,7 +173,7 @@ static mut STILL_HOT: bool = false;
 extern "system" fn mouse_hook_callback(n_code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     unsafe {
         let evt = l_param.0 as *mut MSLLHOOKSTRUCT;
-        let flag = HOT_CORNER_THREAD_FLAG.get().unwrap().clone();
+        let flag = HOT_CORNER_THREAD_FLAG.get().unwrap();
 
         // If the mouse hasn't moved, we're done
         let wm_evt = u32::try_from(w_param.0).expect("w_param.0 fits in a u32");
