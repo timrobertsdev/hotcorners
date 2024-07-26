@@ -6,7 +6,6 @@ Configuration is currently hard-coded. The following parameters can be modified 
 
 * `HOT_CORNER` - Coordinates of the hot corner, defaults to the top-left corner
 * `HOT_CORNER_INPUT` - The input sequence to be sent on activation, defaults to `Win+Tab`
-* `HOT_DELAY` - How long the cursor must stay within the hot corner to activate, in milliseconds, defaults to `100`
 * `EXIT_HOT_KEY` - Base key for exiting the program, combined with `EXIT_HOT_KEY_MODIFIERS`, defaults to `C`
 * `EXIT_HOT_KEY_MODIFIERS` - Modifier key(s) for exiting the program, combined with `EXIT_HOT_KEY`, defaults to `Alt+Ctrl`
 
